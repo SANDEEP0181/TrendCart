@@ -1,8 +1,37 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TrendCart</title><link rel="stylesheet" href="style.css"></head>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="TrendCart - trending clothes and shoes at simple prices.">
+<title>TrendCart — Trending Styles</title>
+<link rel="stylesheet" href="style.css">
+</head>
 <body>
-<header><a class="logo" href="index.html">TrendCart</a><nav><a href="#products">Shop</a><a href="cart.html">🛒 Cart <span id="cartCount">0</span></a><a href="admin/index.html">Admin</a></nav></header>
-<section class="hero"><h1>Trending Styles, Delivered</h1><p>Clothes & shoes at simple prices.</p><a class="btn" href="#products">Shop Now</a></section>
-<main><h2 id="products">Latest Products</h2><div id="productGrid" class="grid"><p>Loading products...</p></div></main>
-<script src="script.js"></script></body></html>
+<header>
+  <a class="logo" href="index.html">TrendCart</a>
+  <nav>
+    <a href="#products">Shop</a>
+    <a href="cart.html">🛒 Cart <span id="cartCount">0</span></a>
+    <a href="admin/index.html">Admin</a>
+  </nav>
+</header>
+<section class="hero">
+  <div class="hero-content">
+    <span class="eyebrow">✨ TRENDING NOW</span>
+    <h1>Trending Styles,<br><span>Delivered.</span></h1>
+    <p>Discover everyday clothes and shoes at simple, affordable prices.</p>
+    <a class="btn hero-btn" href="#products">Shop Now →</a>
+  </div>
+</section>
+<main>
+  <div class="section-head">
+    <div><span class="eyebrow">OUR COLLECTION</span><h2 id="products">Latest Products</h2></div>
+    <div class="tools"><input id="searchBox" type="search" placeholder="Search products..." aria-label="Search products"><select id="categoryFilter" aria-label="Filter by category"><option value="">All Categories</option><option value="Clothes">Clothes</option><option value="Shoes">Shoes</option><option value="Other">Other</option></select></div>
+  </div>
+  <div id="productGrid" class="grid"><p class="loading">Loading products...</p></div>
+</main>
+<footer><b>TrendCart</b><span>Simple shopping. Trending choices.</span></footer>
+<script src="script.js"></script>
+</body>
+</html>
