@@ -39,7 +39,7 @@ app.put('/api/products/:id',auth,async(q,s)=>{try{const{name,category='Other',pr
 
 app.delete('/api/products/:id',auth,async(q,s)=>{try{const r=await pool.query('DELETE FROM products WHERE id=$1',[Number(q.params.id)]);if(!r.rowCount)return s.status(404).json({error:'Product not found'});s.json({success:true})}catch(e){s.status(500).json({error:e.message})}});
 
-app.get('/api/orders',auth,async(q,s)=>{try{const r=await pool.query('SELECT * FROM orders ORDER BY id DESC');s.json(r.rows)}catch(e){s.status(500).json({error:e.message})}});
+app.get('/api/orders',auth,async(q,s)=>{try{const r=await pool.query("SELECT id,customer_name,mobile,address,city,state,pincode,payment_method,items,total,status,created_at,to_char(created_at AT TIME ZONE 'Asia/Kolkata','DD Mon YYYY, HH12:MI:SS AM') AS created_at_ist FROM orders ORDER BY id DESC");s.json(r.rows)}catch(e){s.status(500).json({error:e.message})}});
 
 app.post('/api/orders',async(q,s)=>{const client=await pool.connect();try{
   const{customer_name,mobile,address,city,state,pincode,payment_method='COD',items,total}=q.body||{};
