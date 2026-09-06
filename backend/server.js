@@ -62,7 +62,7 @@ app.post('/api/orders',async(q,s)=>{const client=await pool.connect();try{
       await client.query('UPDATE products SET stock=stock-$1,sizes=$2 WHERE id=$3',[item.quantity,sizes,item.id]);
     }else await client.query('UPDATE products SET stock=stock-$1 WHERE id=$2',[item.quantity,item.id]);
   }
-  const orderResult=await client.query('INSERT INTO orders(customer_name,mobile,address,city,state,pincode,payment_method,items,total) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id',[customer_name,mobile,address,city,state,pincode,payment_method,normalized,Number(total)]);
+  const orderResult=await client.query('INSERT INTO orders(customer_name,mobile,address,city,state,pincode,payment_method,items,total) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id',[customer_name,mobile,address,city,state,pincode,payment_method,JSON.stringify(normalized),Number(total)]);
   await client.query('COMMIT');
   s.json({success:true,orderId:orderResult.rows[0].id});
 }catch(e){await client.query('ROLLBACK').catch(()=>{});s.status(400).json({error:e.message||'Order failed'})}finally{client.release()}});
