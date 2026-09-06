@@ -4,9 +4,10 @@ const crypto=require('crypto');
 const Database=require('better-sqlite3');
 const app=express();
 const PORT=process.env.PORT||5000;
-const ADMIN_USERNAME=process.env.ADMIN_USERNAME;
-const ADMIN_PASSWORD=process.env.ADMIN_PASSWORD;
-const ADMIN_SECRET=process.env.ADMIN_SECRET;
+// Temporary free-plan admin configuration. Move these to Render Environment Variables later.
+const ADMIN_USERNAME='admin';
+const ADMIN_PASSWORD='TrendCart@Admin2026!';
+const ADMIN_SECRET='TrendCart-Secure-Secret-2026-Change-Later';
 
 app.use(cors());
 app.use(express.json({limit:'10mb'}));
@@ -19,10 +20,10 @@ if(db.prepare('SELECT COUNT(*) c FROM products').get().c===0){const add=db.prepa
 function safeEqual(a,b){const x=Buffer.from(String(a||''));const y=Buffer.from(String(b||''));return x.length===y.length&&crypto.timingSafeEqual(x,y)}
 function sign(value){return crypto.createHmac('sha256',ADMIN_SECRET).update(value).digest('hex')}
 function makeToken(username){const payload=Buffer.from(JSON.stringify({u:username,t:Date.now()})).toString('base64url');return payload+'.'+sign(payload)}
-function auth(req,res,next){if(!ADMIN_SECRET)return res.status(500).json({error:'Admin security is not configured'});const h=req.headers.authorization||'';if(!h.startsWith('Bearer '))return res.status(401).json({error:'Admin login required'});const token=h.slice(7);const parts=token.split('.');if(parts.length!==2||!safeEqual(parts[1],sign(parts[0])))return res.status(401).json({error:'Invalid admin token'});try{const p=JSON.parse(Buffer.from(parts[0],'base64url').toString());if(p.u!==ADMIN_USERNAME||Date.now()-p.t>86400000)return res.status(401).json({error:'Admin session expired'});req.admin=p.u;next()}catch(e){return res.status(401).json({error:'Invalid admin token'})}}
+function auth(req,res,next){const h=req.headers.authorization||'';if(!h.startsWith('Bearer '))return res.status(401).json({error:'Admin login required'});const token=h.slice(7);const parts=token.split('.');if(parts.length!==2||!safeEqual(parts[1],sign(parts[0])))return res.status(401).json({error:'Invalid admin token'});try{const p=JSON.parse(Buffer.from(parts[0],'base64url').toString());if(p.u!==ADMIN_USERNAME||Date.now()-p.t>86400000)return res.status(401).json({error:'Admin session expired'});req.admin=p.u;next()}catch(e){return res.status(401).json({error:'Invalid admin token'})}}
 
 app.get('/',(q,s)=>s.json({success:true,message:'TrendCart Backend is running'}));
-app.post('/api/admin/login',(q,s)=>{if(!ADMIN_USERNAME||!ADMIN_PASSWORD||!ADMIN_SECRET)return s.status(500).json({error:'Admin security is not configured on server'});const{username,password}=q.body||{};if(!safeEqual(username,ADMIN_USERNAME)||!safeEqual(password,ADMIN_PASSWORD))return s.status(401).json({error:'Invalid username or password'});s.json({success:true,token:makeToken(username)})});
+app.post('/api/admin/login',(q,s)=>{const{username,password}=q.body||{};if(!safeEqual(username,ADMIN_USERNAME)||!safeEqual(password,ADMIN_PASSWORD))return s.status(401).json({error:'Invalid username or password'});s.json({success:true,token:makeToken(username)})});
 app.get('/api/products',(q,s)=>{const rows=db.prepare('SELECT * FROM products ORDER BY id DESC').all();s.json(rows.map(p=>({...p,sizes:p.sizes?JSON.parse(p.sizes):{}})))});
 app.post('/api/products',auth,(q,s)=>{try{const{name,category='Other',price,stock,image=null,sizes={}}=q.body;if(!name||price===undefined||stock===undefined)return s.status(400).json({error:'Product details are required'});const r=db.prepare('INSERT INTO products(name,category,price,stock,image,sizes) VALUES(?,?,?,?,?,?)').run(name,category,Number(price),Number(stock),image,JSON.stringify(sizes));const p=db.prepare('SELECT * FROM products WHERE id=?').get(r.lastInsertRowid);p.sizes=JSON.parse(p.sizes);s.json({success:true,product:p})}catch(e){s.status(500).json({error:e.message})}});
 app.put('/api/products/:id',auth,(q,s)=>{try{const{name,category='Other',price,stock,image=null,sizes={}}=q.body;const r=db.prepare('UPDATE products SET name=?,category=?,price=?,stock=?,image=?,sizes=? WHERE id=?').run(name,category,Number(price),Number(stock),image,JSON.stringify(sizes),Number(q.params.id));if(!r.changes)return s.status(404).json({error:'Product not found'});s.json({success:true})}catch(e){s.status(500).json({error:e.message})}});
