@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Checkout - TrendCart</title><link rel="stylesheet" href="style.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Checkout - TrendCart</title><link rel="stylesheet" href="style.css"><script src="https://checkout.razorpay.com/v1/checkout.js"></script></head>
 <body>
 <header><a class="logo" href="index.html">TrendCart</a></header>
 <main>
@@ -9,13 +9,13 @@
     <div id="summary"></div>
     <form id="f">
       <input id="name" placeholder="Full Name" required>
-      <input id="mobile" placeholder="Mobile Number" required>
+      <input id="mobile" placeholder="Mobile Number" inputmode="numeric" required>
       <textarea id="address" placeholder="Full Address" required></textarea>
       <input id="city" placeholder="City" required>
       <input id="state" placeholder="State" required>
-      <input id="pin" placeholder="Pincode" required>
-      <select id="pay"><option value="COD">Cash on Delivery</option></select>
-      <button type="submit">Place Order</button>
+      <input id="pin" placeholder="Pincode" inputmode="numeric" required>
+      <select id="pay"><option value="COD">Cash on Delivery</option><option value="ONLINE">Online Payment (UPI / Card / Netbanking)</option></select>
+      <button id="placeBtn" type="submit">Place Order</button>
     </form>
   </div>
 </main>
@@ -25,44 +25,35 @@ const K='trendcart_cart';
 const c=JSON.parse(localStorage.getItem(K)||'[]');
 const summary=document.getElementById('summary');
 const form=document.getElementById('f');
+const btn=document.getElementById('placeBtn');
 const total=c.reduce((s,x)=>s+Number(x.price||0)*Number(x.quantity||0),0);
-summary.innerHTML=`<p>${c.length} cart item(s)</p><div class="total">Total: ₹${total}</div>`;
+summary.innerHTML=`<p>${c.length} cart item(s)</p><div class="total">Total: ₹${total.toFixed(2)}</div>`;
 
-form.addEventListener('submit',async e=>{
-  e.preventDefault();
-  if(!c.length){alert('Cart is empty');return;}
+function customerBody(){return{
+  customer_name:document.getElementById('name').value.trim(),
+  mobile:document.getElementById('mobile').value.trim(),
+  address:document.getElementById('address').value.trim(),
+  city:document.getElementById('city').value.trim(),
+  state:document.getElementById('state').value.trim(),
+  pincode:document.getElementById('pin').value.trim(),
+  items:c,total:Number(total)
+}}
+function validate(body){const required=['customer_name','mobile','address','city','state','pincode'];const missing=required.filter(k=>!body[k]);if(missing.length){alert('Please fill: '+missing.join(', '));return false}return true}
+async function placeCOD(body){const r=await fetch(API+'/api/orders',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({...body,payment_method:'COD'})});const d=await r.json().catch(()=>({error:'Invalid server response'}));if(!r.ok)throw Error(d.error||'Order could not be placed');return d}
+async function startOnline(body){
+  const r=await fetch(API+'/api/payment/create-order',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({error:'Invalid server response'}));if(!r.ok)throw Error(d.error||'Could not start online payment');
+  const options={key:d.keyId,amount:d.amount,currency:d.currency,name:'TrendCart',description:'TrendCart Order',order_id:d.orderId,prefill:{name:body.customer_name,contact:body.mobile},theme:{color:'#111827'},handler:async function(response){
+    try{
+      const vr=await fetch(API+'/api/payment/verify',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({...body,razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature})});
+      const vd=await vr.json().catch(()=>({error:'Invalid server response'}));if(!vr.ok)throw Error(vd.error||'Payment verification failed');
+      localStorage.removeItem(K);alert('Payment successful! Order ID: #'+vd.orderId);location.href='index.html';
+    }catch(err){btn.disabled=false;btn.textContent='Place Order';alert('Payment received but order confirmation failed: '+err.message)}
+  },modal:{ondismiss:function(){btn.disabled=false;btn.textContent='Place Order';alert('Online payment cancelled.')}}};
+  const rp=new Razorpay(options);rp.on('payment.failed',function(resp){btn.disabled=false;btn.textContent='Place Order';alert('Payment failed: '+(resp.error?.description||'Please try again.'))});rp.open();
+}
 
-  const body={
-    customer_name:document.getElementById('name').value.trim(),
-    mobile:document.getElementById('mobile').value.trim(),
-    address:document.getElementById('address').value.trim(),
-    city:document.getElementById('city').value.trim(),
-    state:document.getElementById('state').value.trim(),
-    pincode:document.getElementById('pin').value.trim(),
-    payment_method:document.getElementById('pay').value,
-    items:c,
-    total:Number(total)
-  };
-
-  const required=['customer_name','mobile','address','city','state','pincode','payment_method'];
-  const missing=required.filter(k=>!body[k]);
-  if(missing.length){alert('Please fill: '+missing.join(', '));return;}
-
-  try{
-    const r=await fetch(API+'/api/orders',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify(body)
-    });
-    const d=await r.json().catch(()=>({error:'Invalid server response'}));
-    if(!r.ok) throw Error(d.error||'Order could not be placed');
-    localStorage.removeItem(K);
-    alert('Order placed successfully! Order ID: #'+d.orderId);
-    location.href='index.html';
-  }catch(err){
-    alert('Order failed: '+err.message);
-  }
-});
+form.addEventListener('submit',async e=>{e.preventDefault();if(!c.length){alert('Cart is empty');return}const body=customerBody();if(!validate(body))return;btn.disabled=true;btn.textContent='Processing...';try{if(document.getElementById('pay').value==='COD'){const d=await placeCOD(body);localStorage.removeItem(K);alert('Order placed successfully! Order ID: #'+d.orderId);location.href='index.html'}else await startOnline(body)}catch(err){btn.disabled=false;btn.textContent='Place Order';alert('Order failed: '+err.message)}});
 </script>
 </body>
 </html>
