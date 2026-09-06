@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Track your TrendCart order."><title>Track Order - TrendCart</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><a class="logo" href="index.html">TrendCart</a><nav><a href="index.html">Shop</a><a href="cart.html">🛒 Cart</a></nav></header>
+<main><div class="form" style="max-width:560px;margin:40px auto"><span class="eyebrow">ORDER TRACKING</span><h2>Track Your Order</h2><p>Enter your Order ID and the mobile number used at checkout.</p><form id="trackForm"><input id="orderId" type="number" min="1" placeholder="Order ID" required><input id="mobile" type="tel" inputmode="numeric" placeholder="Mobile Number" required><button class="btn" type="submit">Track Order</button></form><div id="result" style="margin-top:24px"></div></div></main>
+<footer><b>TrendCart</b><span>Simple shopping. Trending choices.</span></footer>
+<script>
+const API='https://trendcart-wozq.onrender.com';const result=document.getElementById('result');
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function money(v){return '₹'+Number(v||0).toFixed(2)}
+document.getElementById('trackForm').addEventListener('submit',async e=>{e.preventDefault();result.innerHTML='<p>🔎 Finding your order...</p>';const id=document.getElementById('orderId').value.trim(),mobile=document.getElementById('mobile').value.trim();try{const r=await fetch(`${API}/api/orders/track?id=${encodeURIComponent(id)}&mobile=${encodeURIComponent(mobile)}`);const d=await r.json().catch(()=>({error:'Invalid server response'}));if(!r.ok)throw Error(d.error||'Order not found');const o=d.order;const items=Array.isArray(o.items)?o.items:[];result.innerHTML=`<div style="padding:20px;border:1px solid #ddd;border-radius:14px;background:#fff"><h3>Order #${esc(o.id)}</h3><p><b>Status:</b> ${esc(o.status)}</p><p><b>Order Date:</b> ${esc(o.created_at_ist)}</p><p><b>Payment:</b> ${esc(o.payment_method)}</p><hr><h4>Items</h4>${items.map(i=>`<p>${esc(i.name)}${i.size?' ('+esc(i.size)+')':''} × ${esc(i.quantity)} — ${money(i.price* i.quantity)}</p>`).join('')}<hr><h3>Total: ${money(o.total)}</h3><p><b>Delivery:</b> ${esc(o.address)}, ${esc(o.city)}, ${esc(o.state)} - ${esc(o.pincode)}</p></div>`}catch(err){result.innerHTML=`<p style="padding:14px;border-radius:10px;background:#fff1f1">❌ ${esc(err.message)}</p>`}});
+</script></body></html>
