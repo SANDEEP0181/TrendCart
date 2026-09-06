@@ -29,7 +29,45 @@ app.post('/api/products',auth,(q,s)=>{try{const{name,category='Other',price,stoc
 app.put('/api/products/:id',auth,(q,s)=>{try{const{name,category='Other',price,stock,image=null,sizes={}}=q.body;const r=db.prepare('UPDATE products SET name=?,category=?,price=?,stock=?,image=?,sizes=? WHERE id=?').run(name,category,Number(price),Number(stock),image,JSON.stringify(sizes),Number(q.params.id));if(!r.changes)return s.status(404).json({error:'Product not found'});s.json({success:true})}catch(e){s.status(500).json({error:e.message})}});
 app.delete('/api/products/:id',auth,(q,s)=>{const r=db.prepare('DELETE FROM products WHERE id=?').run(Number(q.params.id));if(!r.changes)return s.status(404).json({error:'Product not found'});s.json({success:true})});
 app.get('/api/orders',auth,(q,s)=>s.json(db.prepare('SELECT * FROM orders ORDER BY id DESC').all()));
-app.post('/api/orders',(q,s)=>{try{const{customer_name,mobile,address,city,state,pincode,payment_method='COD',items,total}=q.body;if(!customer_name||!mobile||!address||!city||!state||!pincode||!items||total===undefined)return s.status(400).json({error:'All order details are required'});const r=db.prepare('INSERT INTO orders(customer_name,mobile,address,city,state,pincode,payment_method,items,total) VALUES(?,?,?,?,?,?,?,?,?)').run(customer_name,mobile,address,city,state,pincode,payment_method,typeof items==='string'?items:JSON.stringify(items),Number(total));s.json({success:true,orderId:r.lastInsertRowid})}catch(e){s.status(500).json({error:e.message})}});
+
+app.post('/api/orders',(q,s)=>{try{
+  const{customer_name,mobile,address,city,state,pincode,payment_method='COD',items,total}=q.body||{};
+  if(!customer_name||!mobile||!address||!city||!state||!pincode||!payment_method||!items||total===undefined)return s.status(400).json({error:'All order details are required'});
+  const orderItems=typeof items==='string'?JSON.parse(items):items;
+  if(!Array.isArray(orderItems)||!orderItems.length)return s.status(400).json({error:'Cart is empty'});
+
+  const normalized=orderItems.map(item=>({
+    id:Number(item.id),
+    name:String(item.name||''),
+    price:Number(item.price||0),
+    quantity:Number(item.quantity||0),
+    size:item.size||null
+  }));
+  if(normalized.some(item=>!Number.isInteger(item.id)||item.id<1||!Number.isInteger(item.quantity)||item.quantity<1))return s.status(400).json({error:'Invalid cart items'});
+
+  const placeOrder=db.transaction(()=>{
+    for(const item of normalized){
+      const product=db.prepare('SELECT id,name,stock,sizes FROM products WHERE id=?').get(item.id);
+      if(!product)throw new Error(`Product not found: ${item.id}`);
+      if(product.stock<item.quantity)throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
+      if(item.size){
+        const sizes=product.sizes?JSON.parse(product.sizes):{};
+        const available=Number(sizes[item.size]||0);
+        if(available<item.quantity)throw new Error(`Insufficient stock for ${product.name} (${item.size}). Available: ${available}`);
+        sizes[item.size]=available-item.quantity;
+        db.prepare('UPDATE products SET stock=stock-?,sizes=? WHERE id=?').run(item.quantity,JSON.stringify(sizes),item.id);
+      }else{
+        db.prepare('UPDATE products SET stock=stock-? WHERE id=?').run(item.quantity,item.id);
+      }
+    }
+    const r=db.prepare('INSERT INTO orders(customer_name,mobile,address,city,state,pincode,payment_method,items,total) VALUES(?,?,?,?,?,?,?,?,?)').run(customer_name,mobile,address,city,state,pincode,payment_method,JSON.stringify(normalized),Number(total));
+    return r.lastInsertRowid;
+  });
+
+  const orderId=placeOrder();
+  s.json({success:true,orderId});
+}catch(e){s.status(400).json({error:e.message||'Order failed'})}});
+
 app.put('/api/orders/:id/status',auth,(q,s)=>{const allowed=['Pending','Confirmed','Shipped','Delivered','Cancelled'];if(!allowed.includes(q.body.status))return s.status(400).json({error:'Invalid status'});const r=db.prepare('UPDATE orders SET status=? WHERE id=?').run(q.body.status,Number(q.params.id));if(!r.changes)return s.status(404).json({error:'Order not found'});s.json({success:true})});
 
 app.listen(PORT,()=>console.log(`TrendCart Backend running on port ${PORT}`));
