@@ -13,7 +13,7 @@ function getTransporter(){
 }
 
 function money(v){return `₹${Number(v||0).toFixed(2)}`}
-function esc(v){return String(v??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\"':'&quot;'}[c]||c))}
+function esc(v){return String(v??'').replace(/[&<>\\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\':'&#92;','"':'&quot;'}[c]||c))}
 
 async function sendOrderConfirmationEmail(order,email){
   const t=getTransporter();
@@ -27,4 +27,14 @@ async function sendOrderConfirmationEmail(order,email){
   return {sent:true};
 }
 
-module.exports={sendOrderConfirmationEmail};
+async function sendSupportReplyEmail(ticket){
+  const t=getTransporter();
+  if(!t||!ticket?.email||!ticket?.admin_reply)return {sent:false,reason:'Email service is not configured or customer email is unavailable'};
+  const from=process.env.SMTP_FROM||process.env.SMTP_USER;
+  const subject=`TrendCart Support Reply — ${ticket.ticket_code}`;
+  const html=`<!doctype html><html><body style="margin:0;background:#f5f7fb;font-family:Arial,sans-serif;color:#222"><div style="max-width:640px;margin:24px auto;background:#fff;border-radius:12px;padding:28px"><h2 style="margin-top:0">TrendCart — Support Update</h2><p>Hi ${esc(ticket.name)},</p><p>Our support team has replied to your ticket.</p><div style="background:#f7f7f7;padding:16px;border-radius:8px"><b>Ticket:</b> ${esc(ticket.ticket_code)}<br><b>Subject:</b> ${esc(ticket.subject)}<br><b>Status:</b> ${esc(ticket.status)}</div><h3>Support Reply</h3><p style="white-space:pre-wrap">${esc(ticket.admin_reply)}</p><p style="margin-top:24px"><a href="${process.env.FRONTEND_URL||'https://sandeep0181.github.io/TrendCart/'}support.html" style="display:inline-block;padding:11px 18px;background:#111;color:#fff;text-decoration:none;border-radius:7px">View Support</a></p><p style="color:#777;font-size:12px">Please keep your ticket ID for future reference.</p></div></body></html>`;
+  await t.sendMail({from,to:ticket.email,subject,html,text:`TrendCart support ticket ${ticket.ticket_code}: ${ticket.admin_reply}`});
+  return {sent:true};
+}
+
+module.exports={sendOrderConfirmationEmail,sendSupportReplyEmail};
