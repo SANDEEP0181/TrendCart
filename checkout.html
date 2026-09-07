@@ -28,17 +28,9 @@ const form=document.getElementById('f');
 const btn=document.getElementById('placeBtn');
 const total=c.reduce((s,x)=>s+Number(x.price||0)*Number(x.quantity||0),0);
 summary.innerHTML=`<p>${c.length} cart item(s)</p><div class="total">Total: ₹${total.toFixed(2)}</div>`;
-
-function customerBody(){return{
-  customer_name:document.getElementById('name').value.trim(),
-  mobile:document.getElementById('mobile').value.trim(),
-  address:document.getElementById('address').value.trim(),
-  city:document.getElementById('city').value.trim(),
-  state:document.getElementById('state').value.trim(),
-  pincode:document.getElementById('pin').value.trim(),
-  items:c,total:Number(total)
-}}
+function customerBody(){return{customer_name:document.getElementById('name').value.trim(),mobile:document.getElementById('mobile').value.trim(),address:document.getElementById('address').value.trim(),city:document.getElementById('city').value.trim(),state:document.getElementById('state').value.trim(),pincode:document.getElementById('pin').value.trim(),items:c,total:Number(total)}}
 function validate(body){const required=['customer_name','mobile','address','city','state','pincode'];const missing=required.filter(k=>!body[k]);if(missing.length){alert('Please fill: '+missing.join(', '));return false}return true}
+function saveConfirmation(body,orderId,payment_method,status='Confirmed'){sessionStorage.setItem('trendcart_last_order',JSON.stringify({...body,orderId,payment_method,status}));}
 async function placeCOD(body){const r=await fetch(API+'/api/orders',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({...body,payment_method:'COD'})});const d=await r.json().catch(()=>({error:'Invalid server response'}));if(!r.ok)throw Error(d.error||'Order could not be placed');return d}
 async function startOnline(body){
   const r=await fetch(API+'/api/payment/create-order',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body)});
@@ -47,13 +39,12 @@ async function startOnline(body){
     try{
       const vr=await fetch(API+'/api/payment/verify',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({...body,razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature})});
       const vd=await vr.json().catch(()=>({error:'Invalid server response'}));if(!vr.ok)throw Error(vd.error||'Payment verification failed');
-      localStorage.removeItem(K);alert('Payment successful! Order ID: #'+vd.orderId);location.href='index.html';
+      saveConfirmation(body,vd.orderId,'ONLINE','Confirmed');localStorage.removeItem(K);location.href='order-confirmation.html';
     }catch(err){btn.disabled=false;btn.textContent='Place Order';alert('Payment received but order confirmation failed: '+err.message)}
   },modal:{ondismiss:function(){btn.disabled=false;btn.textContent='Place Order';alert('Online payment cancelled.')}}};
   const rp=new Razorpay(options);rp.on('payment.failed',function(resp){btn.disabled=false;btn.textContent='Place Order';alert('Payment failed: '+(resp.error?.description||'Please try again.'))});rp.open();
 }
-
-form.addEventListener('submit',async e=>{e.preventDefault();if(!c.length){alert('Cart is empty');return}const body=customerBody();if(!validate(body))return;btn.disabled=true;btn.textContent='Processing...';try{if(document.getElementById('pay').value==='COD'){const d=await placeCOD(body);localStorage.removeItem(K);alert('Order placed successfully! Order ID: #'+d.orderId);location.href='index.html'}else await startOnline(body)}catch(err){btn.disabled=false;btn.textContent='Place Order';alert('Order failed: '+err.message)}});
+form.addEventListener('submit',async e=>{e.preventDefault();if(!c.length){alert('Cart is empty');return}const body=customerBody();if(!validate(body))return;btn.disabled=true;btn.textContent='Processing...';try{if(document.getElementById('pay').value==='COD'){const d=await placeCOD(body);saveConfirmation(body,d.orderId,'COD','Confirmed');localStorage.removeItem(K);location.href='order-confirmation.html'}else await startOnline(body)}catch(err){btn.disabled=false;btn.textContent='Place Order';alert('Order failed: '+err.message)}});
 </script>
 </body>
 </html>
