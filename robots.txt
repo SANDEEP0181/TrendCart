@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /backend/
+Disallow: /api/
+
+Sitemap: https://sandeep0181.github.io/TrendCart/sitemap.xml
