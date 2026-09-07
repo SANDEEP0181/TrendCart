@@ -4,4 +4,9 @@ Disallow: /admin/
 Disallow: /backend/
 Disallow: /api/
 
+# Private/customer utility pages should not be prioritized for search crawling.
+Disallow: /checkout.html
+Disallow: /account.html
+Disallow: /account-dashboard.html
+
 Sitemap: https://sandeep0181.github.io/TrendCart/sitemap.xml
