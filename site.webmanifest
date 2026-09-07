@@ -1,0 +1,11 @@
+{
+  "name": "TrendCart",
+  "short_name": "TrendCart",
+  "start_url": "/TrendCart/",
+  "scope": "/TrendCart/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111827",
+  "description": "TrendCart — trending clothes and shoes at simple, affordable prices.",
+  "icons": []
+}
