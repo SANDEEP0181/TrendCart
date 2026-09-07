@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://sandeep0181.github.io/TrendCart/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
-  <url><loc>https://sandeep0181.github.io/TrendCart/cart.html</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://sandeep0181.github.io/TrendCart/wishlist.html</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://sandeep0181.github.io/TrendCart/product.html?id=1</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://sandeep0181.github.io/TrendCart/product.html?id=2</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://sandeep0181.github.io/TrendCart/reviews.html</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://sandeep0181.github.io/TrendCart/track-order.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://sandeep0181.github.io/TrendCart/account.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
   <url><loc>https://sandeep0181.github.io/TrendCart/support.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
 </urlset>
