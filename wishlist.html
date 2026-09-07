@@ -3,42 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Your saved TrendCart products.">
+<meta name="description" content="Manage your saved TrendCart products.">
 <title>TrendCart — Wishlist</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20260907-7">
 </head>
 <body>
-<header>
-  <a class="logo" href="index.html">TrendCart</a>
-  <nav>
-    <a href="index.html#products">Shop</a>
-    <a href="track-order.html">Track Order</a>
-    <a href="wishlist.html">♡ Wishlist <span id="wishlistCount">0</span></a>
-    <a href="cart.html">🛒 Cart <span id="cartCount">0</span></a>
-  </nav>
-</header>
+<header><a class="logo" href="index.html" aria-label="TrendCart home"><img src="assets/trendcart-logo.svg" alt="TrendCart"></a><nav><a href="index.html#products">Shop</a><a href="track-order.html">Track Order</a><a href="wishlist.html">♡ Wishlist <span id="wishlistCount">0</span></a><a href="cart.html">🛒 Cart <span id="cartCount">0</span></a><a href="account.html">👤 Account</a></nav></header>
 <main>
-  <div class="section-head">
-    <div><span class="eyebrow">SAVED FOR LATER</span><h2>My Wishlist</h2></div>
-  </div>
-  <div id="wishlistGrid" class="grid"><p class="loading">Loading wishlist...</p></div>
-</main>
-<footer><b>TrendCart</b><span>Simple shopping. Trending choices.</span></footer>
-<script src="script.js"></script>
+<div class="section-head"><div><span class="eyebrow">SAVED FOR LATER</span><h2>My Wishlist</h2><p class="muted">Find saved products, check stock and move them to your cart.</p></div></div>
+<div class="wishlist-toolbar"><input id="wishlistSearch" type="search" placeholder="Search wishlist..." aria-label="Search wishlist"><select id="wishlistSort" aria-label="Sort wishlist"><option value="default">Sort: Recently Saved</option><option value="low">Price: Low to High</option><option value="high">Price: High to Low</option><option value="name">Name: A–Z</option></select><select id="wishlistStock" aria-label="Filter wishlist by stock"><option value="all">All Stock</option><option value="in">In Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select><button id="removeAllWishlist" class="secondary-btn" type="button">Remove All</button></div>
+<div id="wishlistSummary" class="muted wishlist-summary"></div><div id="wishlistGrid" class="grid"><p class="loading">Loading wishlist...</p></div>
+</main><footer><b>TrendCart</b><span>Simple shopping. Trending choices.</span></footer>
+<script src="script.js?v=20260907-7"></script>
 <script>
-function renderWishlist(){
-  const g=document.getElementById('wishlistGrid');
-  if(!g)return;
-  const items=wishlist();
-  document.getElementById('wishlistCount').textContent=items.length;
-  if(!items.length){g.innerHTML='<div class="empty-state"><div class="empty-icon">♡</div><h3>Your wishlist is empty</h3><p>Save products you love and find them here later.</p><a class="btn" href="index.html#products">Continue Shopping</a></div>';return}
-  g.innerHTML=items.map(p=>{
-    const sizes=p.sizes||{};
-    const opts=Object.entries(sizes).filter(([s,q])=>q>0).map(([s,q])=>`<label><input type="radio" name="wish-size-${p.id}" value="${s}">${s}</label>`).join('');
-    return `<article class="card"><div class="pic">${p.image?`<img src="${p.image}" alt="${escapeHtml(p.name)}" loading="lazy">`:(p.category==='Shoes'?'👟':p.category==='Clothes'?'👕':'🛍️')}</div><h3>${escapeHtml(p.name)}</h3><div class="muted">${escapeHtml(p.category)} · Stock ${p.stock}</div><div class="price">₹${Number(p.price).toFixed(0)}</div>${opts?`<div class="sizes">${opts}</div>`:''}<button type="button" onclick='add(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Add to Cart</button><button class="secondary-btn" type="button" onclick="removeWishlist(${p.id})">Remove from Wishlist</button></article>`
-  }).join('');
-}
-renderWishlist();
-</script>
-</body>
-</html>
+const wishlistEscape=window.escapeHtml||((v)=>String(v??'').replace(/[&<>\'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c])));
+function stockInfo(p){const n=Number(p.stock)||0;if(n<=0)return{key:'out',label:'Out of Stock',className:'stock-out'};if(n<=5)return{key:'low',label:`Low Stock · ${n} left`,className:'stock-low'};return{key:'in',label:`In Stock · ${n} available`,className:'stock-in'}}
+function selectedWishSize(id){return document.querySelector(`input[name="wish-size-${id}"]:checked`)?.value||''}
+function moveWishlistToCart(p){if((p.category==='Clothes'||p.category==='Shoes')&&!selectedWishSize(p.id)){alert('Please select a size first');return}if(Number(p.stock)<=0){alert('This product is currently out of stock');return}const size=selectedWishSize(p.id),c=cart(),key=p.id+'|'+size,old=c.find(x=>x.key===key);if(old){if(old.quantity>=Number(p.stock)){alert('Stock limit reached');return}old.quantity++}else c.push({...p,quantity:1,size,key});save(c);alert('Moved to cart')}
+function removeAllWishlist(){const items=wishlist();if(!items.length)return;if(confirm(`Remove all ${items.length} wishlist item${items.length===1?'':'s'}?`)){saveWishlist([]);renderWishlist()}}
+function renderWishlist(){const g=document.getElementById('wishlistGrid');if(!g)return;const all=wishlist();document.getElementById('wishlistCount').textContent=all.length;const q=(document.getElementById('wishlistSearch')?.value||'').trim().toLowerCase(),sort=document.getElementById('wishlistSort')?.value||'default',stockFilter=document.getElementById('wishlistStock')?.value||'all';let items=all.filter(p=>{const s=stockInfo(p);return(!q||String(p.name).toLowerCase().includes(q)||String(p.category).toLowerCase().includes(q))&&(stockFilter==='all'||s.key===stockFilter)});if(sort==='low')items.sort((a,b)=>Number(a.price)-Number(b.price));if(sort==='high')items.sort((a,b)=>Number(b.price)-Number(a.price));if(sort==='name')items.sort((a,b)=>String(a.name).localeCompare(String(b.name)));document.getElementById('wishlistSummary').textContent=`Showing ${items.length} of ${all.length} saved product${all.length===1?'':'s'}`;if(!all.length){g.innerHTML='<div class="empty-state"><div class="empty-icon">♡</div><h3>Your wishlist is empty</h3><p>Save products you love and find them here later.</p><a class="btn" href="index.html#products">Continue Shopping</a></div>';return}if(!items.length){g.innerHTML='<p class="loading">No wishlist products match your filters.</p>';return}g.innerHTML=items.map(p=>{const s=stockInfo(p),sizes=p.sizes||{},opts=Object.entries(sizes).filter(([size,qty])=>Number(qty)>0).map(([size])=>`<label class="size-option"><input type="radio" name="wish-size-${p.id}" value="${wishlistEscape(size)}"><span>${wishlistEscape(size)}</span></label>`).join(''),disabled=s.key==='out'?'disabled':'';return `<article class="card wishlist-card"><div class="pic">${p.image?`<img src="${wishlistEscape(p.image)}" alt="${wishlistEscape(p.name)}" loading="lazy">`:(p.category==='Shoes'?'👟':p.category==='Clothes'?'👕':'🛍️')}<span class="stock-badge ${s.className}">${s.label}</span></div><h3>${wishlistEscape(p.name)}</h3><div class="muted">${wishlistEscape(p.category)}</div><div class="price">₹${Number(p.price).toFixed(0)}</div>${opts?`<div class="sizes" aria-label="Available sizes">${opts}</div>`:''}<button type="button" ${disabled} onclick='moveWishlistToCart(${JSON.stringify(p).replace(/'/g,"&#39;")})'>🛒 Move to Cart</button><a class="btn secondary" style="display:block;text-align:center;margin-top:5px" href="product.html?id=${encodeURIComponent(p.id)}">View Product</a><button class="secondary-btn" type="button" onclick="removeWishlist(${Number(p.id)})">Remove</button></article>`}).join('')}
+document.getElementById('wishlistSearch').addEventListener('input',renderWishlist);document.getElementById('wishlistSort').addEventListener('change',renderWishlist);document.getElementById('wishlistStock').addEventListener('change',renderWishlist);document.getElementById('removeAllWishlist').addEventListener('click',removeAllWishlist);renderWishlist();
+</script></body></html>
