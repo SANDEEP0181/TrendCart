@@ -1,0 +1,59 @@
+name: Update SEO Sitemap
+
+on:
+  schedule:
+    - cron: '15 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sitemap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate sitemap from live products API
+        env:
+          PRODUCTS_API: https://trendcart-wozq.onrender.com/api/products
+          SITE_URL: https://sandeep0181.github.io/TrendCart
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const https = require('https');
+          const api = process.env.PRODUCTS_API;
+          const site = process.env.SITE_URL;
+          const staticUrls = [
+            ['', 'daily', '1.0'],
+            ['/reviews.html', 'weekly', '0.6'],
+            ['/track-order.html', 'monthly', '0.4'],
+            ['/support.html', 'monthly', '0.5']
+          ];
+          const xmlEscape = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+          const get = url => new Promise((resolve, reject) => https.get(url, r => {
+            let data='';
+            r.setEncoding('utf8');
+            r.on('data', c => data += c);
+            r.on('end', () => r.statusCode >= 200 && r.statusCode < 300 ? resolve(data) : reject(new Error(`HTTP ${r.statusCode}`)));
+          }).on('error', reject));
+          (async () => {
+            const products = JSON.parse(await get(api));
+            const urls = [...staticUrls];
+            for (const p of products) {
+              if (!p || p.id == null) continue;
+              urls.push([`/product.html?id=${encodeURIComponent(p.id)}`, 'daily', '0.9']);
+            }
+            const body = urls.map(([path, freq, priority]) => `  <url><loc>${xmlEscape(site + path)}</loc><changefreq>${freq}</changefreq><priority>${priority}</priority></url>`).join('\n');
+            fs.writeFileSync('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`);
+          })().catch(err => { console.error(err); process.exit(1); });
+          NODE
+
+      - name: Commit sitemap if changed
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add sitemap.xml
+          git diff --cached --quiet || git commit -m "SEO: refresh product sitemap"
+          git push
