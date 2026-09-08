@@ -32,6 +32,7 @@ jobs:
             ['/product-1.html', 'daily', '0.9'],
             ['/product-2.html', 'daily', '0.9'],
             ['/reviews.html', 'weekly', '0.6'],
+            ['/faq.html', 'weekly', '0.6'],
             ['/track-order.html', 'monthly', '0.4'],
             ['/support.html', 'monthly', '0.5']
           ];
