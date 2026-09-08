@@ -12,10 +12,9 @@ async function run() {
     SET sizes = COALESCE(sizes, '{}'::jsonb) || '{"XL":4}'::jsonb
     WHERE LOWER(name) = LOWER('Classic T-Shirt')
       AND category = 'Clothes'
-      AND NOT (COALESCE(sizes, '{}'::jsonb) ? 'XL')
     RETURNING id, name, sizes
   `);
-  console.log(result.rowCount ? 'XL size added to Classic T-Shirt:' : 'XL size already exists on Classic T-Shirt:', result.rows);
+  console.log(result.rowCount ? 'XL size ensured on Classic T-Shirt:' : 'Classic T-Shirt not found:', result.rows);
 }
 
 run().catch(err => {
