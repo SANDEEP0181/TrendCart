@@ -27,13 +27,15 @@ jobs:
           const site = process.env.SITE_URL;
           const staticUrls = [
             ['', 'daily', '1.0'],
+            ['/category-clothes.html', 'weekly', '0.9'],
+            ['/category-shoes.html', 'weekly', '0.9'],
             ['/product-1.html', 'daily', '0.9'],
             ['/product-2.html', 'daily', '0.9'],
             ['/reviews.html', 'weekly', '0.6'],
             ['/track-order.html', 'monthly', '0.4'],
             ['/support.html', 'monthly', '0.5']
           ];
-          const xmlEscape = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+          const xmlEscape = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&apos;');
           const get = url => new Promise((resolve, reject) => https.get(url, r => {
             let data='';
             r.setEncoding('utf8');
