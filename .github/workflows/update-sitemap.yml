@@ -27,6 +27,8 @@ jobs:
           const site = process.env.SITE_URL;
           const staticUrls = [
             ['', 'daily', '1.0'],
+            ['/product-1.html', 'daily', '0.9'],
+            ['/product-2.html', 'daily', '0.9'],
             ['/reviews.html', 'weekly', '0.6'],
             ['/track-order.html', 'monthly', '0.4'],
             ['/support.html', 'monthly', '0.5']
@@ -43,7 +45,7 @@ jobs:
             const urls = [...staticUrls];
             for (const p of products) {
               if (!p || p.id == null) continue;
-              urls.push([`/product.html?id=${encodeURIComponent(p.id)}`, 'daily', '0.9']);
+              urls.push([`/product.html?id=${encodeURIComponent(p.id)}`, 'daily', '0.8']);
             }
             const body = urls.map(([path, freq, priority]) => `  <url><loc>${xmlEscape(site + path)}</loc><changefreq>${freq}</changefreq><priority>${priority}</priority></url>`).join('\n');
             fs.writeFileSync('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`);
